@@ -1,0 +1,10 @@
+<?php
+session_start(); include('config.php');
+if (!isset($_SESSION['uid'])) { header('Location: login.php'); exit; }
+$orderId=$_POST['razorpay_order_id'] ?? ''; $paymentId=$_POST['razorpay_payment_id'] ?? ''; $signature=$_POST['razorpay_signature'] ?? '';
+$expected=hash_hmac('sha256',$orderId.'|'.$paymentId,RAZORPAY_KEY_SECRET);
+if (!$orderId || !$paymentId || !hash_equals($expected,$signature)) { http_response_code(400); exit('Payment verification failed. No booking was made.'); }
+$uid=(int)$_SESSION['uid']; $stmt=mysqli_prepare($con,'SELECT booking_id,property_id FROM bookings WHERE razorpay_order_id=? AND user_id=? AND payment_status="created"'); mysqli_stmt_bind_param($stmt,'si',$orderId,$uid); mysqli_stmt_execute($stmt); $booking=mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+if (!$booking) { http_response_code(404); exit('Booking order not found.'); }
+mysqli_begin_transaction($con); try { $status='paid'; $stmt=mysqli_prepare($con,'UPDATE bookings SET razorpay_payment_id=?, razorpay_signature=?, payment_status=?, paid_at=NOW() WHERE booking_id=?'); mysqli_stmt_bind_param($stmt,'sssi',$paymentId,$signature,$status,$booking['booking_id']); mysqli_stmt_execute($stmt); $booked='booked'; $stmt=mysqli_prepare($con,'UPDATE property SET status=? WHERE pid=? AND status<>"booked"'); mysqli_stmt_bind_param($stmt,'si',$booked,$booking['property_id']); mysqli_stmt_execute($stmt); mysqli_commit($con); } catch (Exception $e) { mysqli_rollback($con); exit('Payment received but booking could not be saved. Contact support with payment ID: '.htmlspecialchars($paymentId)); }
+?><!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="css/bootstrap.min.css"><title>Booking confirmed</title></head><body><div class="container py-5"><div class="alert alert-success"><h3>Booking confirmed</h3><p>Your booking payment was verified successfully. Payment ID: <?php echo htmlspecialchars($paymentId); ?></p><a class="btn btn-success" href="mybookings.php">View My Orders</a> <a class="btn btn-outline-secondary" href="propertydetail.php?pid=<?php echo (int)$booking['property_id']; ?>">View property</a></div></div></body></html>

@@ -1,0 +1,6 @@
+[Register] Submission received: name=yes, email=yes, phone=yes, image_upload_error=4, user_type=user
+[Register] Validation failed. Use a valid email, all fields and an image.
+[Register] Submission received: name=yes, email=yes, phone=yes, image_upload_error=4, user_type=user
+[Register] Validation failed. Use a valid email, all fields and an image.
+[Register] Submission received: name=yes, email=yes, phone=yes, image_upload_error=0, user_type=user
+[Register] Registration successful for email=vaibhav@gmail.com
